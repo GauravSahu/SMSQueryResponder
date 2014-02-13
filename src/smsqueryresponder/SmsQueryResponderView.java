@@ -1,0 +1,403 @@
+/*
+ * SmsQueryResponderView.java
+ */
+
+package smsqueryresponder;
+
+import org.jdesktop.application.Action;
+import org.jdesktop.application.ResourceMap;
+import org.jdesktop.application.SingleFrameApplication;
+import org.jdesktop.application.FrameView;
+import org.jdesktop.application.TaskMonitor;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.Timer;
+import javax.swing.Icon;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import java.util.ArrayList;
+import java.util.List;
+import javax.crypto.spec.SecretKeySpec;
+import org.ajwcc.pduUtils.test.integration.AbstractTester.CallNotification;
+import org.smslib.AGateway;
+import org.smslib.AGateway.GatewayStatuses;
+import org.smslib.AGateway.Protocols;
+import org.smslib.ICallNotification;
+import org.smslib.IGatewayStatusNotification;
+import org.smslib.IInboundMessageNotification;
+import org.smslib.IOrphanedMessageNotification;
+import org.smslib.InboundMessage;
+import org.smslib.InboundMessage.MessageClasses;
+import org.smslib.Library;
+import org.smslib.Message.MessageTypes;
+import org.smslib.OutboundMessage;
+import org.smslib.Service;
+import org.smslib.crypto.AESKey;
+import org.smslib.modem.SerialModemGateway;
+import smsqueryresponder.ReadMessages.GatewayStatusNotification;
+import smsqueryresponder.ReadMessages.OrphanedMessageNotification;
+
+/**
+ * The application's main frame.
+ */
+public class SmsQueryResponderView extends FrameView {
+    private String PortID;
+
+    public SmsQueryResponderView(SingleFrameApplication app) {
+        super(app);
+
+        initComponents();
+
+        // status bar initialization - message timeout, idle icon and busy animation, etc
+        ResourceMap resourceMap = getResourceMap();
+        int messageTimeout = resourceMap.getInteger("StatusBar.messageTimeout");
+        messageTimer = new Timer(messageTimeout, new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                statusMessageLabel.setText("");
+            }
+        });
+        messageTimer.setRepeats(false);
+        int busyAnimationRate = resourceMap.getInteger("StatusBar.busyAnimationRate");
+        for (int i = 0; i < busyIcons.length; i++) {
+            busyIcons[i] = resourceMap.getIcon("StatusBar.busyIcons[" + i + "]");
+        }
+        busyIconTimer = new Timer(busyAnimationRate, new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                busyIconIndex = (busyIconIndex + 1) % busyIcons.length;
+                statusAnimationLabel.setIcon(busyIcons[busyIconIndex]);
+            }
+        });
+        idleIcon = resourceMap.getIcon("StatusBar.idleIcon");
+        statusAnimationLabel.setIcon(idleIcon);
+        progressBar.setVisible(false);
+
+        // connecting action tasks to status bar via TaskMonitor
+        TaskMonitor taskMonitor = new TaskMonitor(getApplication().getContext());
+        taskMonitor.addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+            public void propertyChange(java.beans.PropertyChangeEvent evt) {
+                String propertyName = evt.getPropertyName();
+                if ("started".equals(propertyName)) {
+                    if (!busyIconTimer.isRunning()) {
+                        statusAnimationLabel.setIcon(busyIcons[0]);
+                        busyIconIndex = 0;
+                        busyIconTimer.start();
+                    }
+                    progressBar.setVisible(true);
+                    progressBar.setIndeterminate(true);
+                } else if ("done".equals(propertyName)) {
+                    busyIconTimer.stop();
+                    statusAnimationLabel.setIcon(idleIcon);
+                    progressBar.setVisible(false);
+                    progressBar.setValue(0);
+                } else if ("message".equals(propertyName)) {
+                    String text = (String)(evt.getNewValue());
+                    statusMessageLabel.setText((text == null) ? "" : text);
+                    messageTimer.restart();
+                } else if ("progress".equals(propertyName)) {
+                    int value = (Integer)(evt.getNewValue());
+                    progressBar.setVisible(true);
+                    progressBar.setIndeterminate(false);
+                    progressBar.setValue(value);
+                }
+            }
+        });
+    }
+
+    @Action
+    public void showAboutBox() {
+        if (aboutBox == null) {
+            JFrame mainFrame = SmsQueryResponderApp.getApplication().getMainFrame();
+            aboutBox = new SmsQueryResponderAboutBox(mainFrame);
+            aboutBox.setLocationRelativeTo(mainFrame);
+        }
+        SmsQueryResponderApp.getApplication().show(aboutBox);
+    }
+
+    /** This method is called from within the constructor to
+     * initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is
+     * always regenerated by the Form Editor.
+     */
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        mainPanel = new javax.swing.JPanel();
+        jButton1 = new javax.swing.JButton();
+        jButton2 = new javax.swing.JButton();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTextArea1 = new javax.swing.JTextArea();
+        menuBar = new javax.swing.JMenuBar();
+        javax.swing.JMenu fileMenu = new javax.swing.JMenu();
+        javax.swing.JMenuItem exitMenuItem = new javax.swing.JMenuItem();
+        statusPanel = new javax.swing.JPanel();
+        javax.swing.JSeparator statusPanelSeparator = new javax.swing.JSeparator();
+        statusMessageLabel = new javax.swing.JLabel();
+        statusAnimationLabel = new javax.swing.JLabel();
+        progressBar = new javax.swing.JProgressBar();
+
+        mainPanel.setName("mainPanel"); // NOI18N
+
+        org.jdesktop.application.ResourceMap resourceMap = org.jdesktop.application.Application.getInstance(smsqueryresponder.SmsQueryResponderApp.class).getContext().getResourceMap(SmsQueryResponderView.class);
+        jButton1.setText(resourceMap.getString("jButton1.text")); // NOI18N
+        jButton1.setName("jButton1"); // NOI18N
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
+        jButton2.setText(resourceMap.getString("jButton2.text")); // NOI18N
+        jButton2.setName("jButton2"); // NOI18N
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
+
+        jScrollPane1.setName("jScrollPane1"); // NOI18N
+
+        jTextArea1.setColumns(20);
+        jTextArea1.setRows(5);
+        jTextArea1.setName("jTextArea1"); // NOI18N
+        jScrollPane1.setViewportView(jTextArea1);
+
+        javax.swing.GroupLayout mainPanelLayout = new javax.swing.GroupLayout(mainPanel);
+        mainPanel.setLayout(mainPanelLayout);
+        mainPanelLayout.setHorizontalGroup(
+            mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(mainPanelLayout.createSequentialGroup()
+                .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(mainPanelLayout.createSequentialGroup()
+                        .addGap(2, 2, 2)
+                        .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 73, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 76, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 390, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+        mainPanelLayout.setVerticalGroup(
+            mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(mainPanelLayout.createSequentialGroup()
+                .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jButton2)
+                    .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 207, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
+        menuBar.setName("menuBar"); // NOI18N
+
+        fileMenu.setText(resourceMap.getString("fileMenu.text")); // NOI18N
+        fileMenu.setName("fileMenu"); // NOI18N
+
+        javax.swing.ActionMap actionMap = org.jdesktop.application.Application.getInstance(smsqueryresponder.SmsQueryResponderApp.class).getContext().getActionMap(SmsQueryResponderView.class, this);
+        exitMenuItem.setAction(actionMap.get("quit")); // NOI18N
+        exitMenuItem.setName("exitMenuItem"); // NOI18N
+        fileMenu.add(exitMenuItem);
+
+        menuBar.add(fileMenu);
+
+        statusPanel.setName("statusPanel"); // NOI18N
+
+        statusPanelSeparator.setName("statusPanelSeparator"); // NOI18N
+
+        statusMessageLabel.setName("statusMessageLabel"); // NOI18N
+
+        statusAnimationLabel.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        statusAnimationLabel.setName("statusAnimationLabel"); // NOI18N
+
+        progressBar.setName("progressBar"); // NOI18N
+
+        javax.swing.GroupLayout statusPanelLayout = new javax.swing.GroupLayout(statusPanel);
+        statusPanel.setLayout(statusPanelLayout);
+        statusPanelLayout.setHorizontalGroup(
+            statusPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(statusPanelSeparator, javax.swing.GroupLayout.DEFAULT_SIZE, 400, Short.MAX_VALUE)
+            .addGroup(statusPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(statusMessageLabel)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 230, Short.MAX_VALUE)
+                .addComponent(progressBar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(statusAnimationLabel)
+                .addContainerGap())
+        );
+        statusPanelLayout.setVerticalGroup(
+            statusPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(statusPanelLayout.createSequentialGroup()
+                .addComponent(statusPanelSeparator, javax.swing.GroupLayout.PREFERRED_SIZE, 2, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(statusPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(statusMessageLabel)
+                    .addComponent(statusAnimationLabel)
+                    .addComponent(progressBar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(3, 3, 3))
+        );
+
+        setComponent(mainPanel);
+        setMenuBar(menuBar);
+        setStatusBar(statusPanel);
+    }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        // TODO add your handling code here:
+        new setting().main(null);
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        // TODO add your handling code here:
+      PortID  = setting.selectedport;
+      jTextArea1.setText("Service Running........");
+      ReadMessages app = new ReadMessages();
+		try
+		{
+			app.doIt(PortID);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+    }//GEN-LAST:event_jButton2ActionPerformed
+    public void doIt(String PortId) throws Exception
+    {
+		// Define a list which will hold the read messages.
+                List<InboundMessage> msgList;
+		// Create the notification callback method for inbound & status report
+		// messages.
+		InboundNotification inboundNotification = new InboundNotification();
+		// Create the notification callback method for inbound voice calls.
+		CallNotification callNotification = new CallNotification();
+		//Create the notification callback method for gateway statuses.
+		GatewayStatusNotification statusNotification = new GatewayStatusNotification();
+		OrphanedMessageNotification orphanedMessageNotification = new OrphanedMessageNotification();
+		try
+		{
+			System.out.println("Example: Read messages from a serial gsm modem.");
+			System.out.println(Library.getLibraryDescription());
+			System.out.println("Version: " + Library.getLibraryVersion());
+			// Create the Gateway representing the serial GSM modem.
+			SerialModemGateway gateway = new SerialModemGateway("modem.com4",PortID , 115200, "SONY", "");
+			// Set the modem protocol to PDU (alternative is TEXT). PDU is the default, anyway...
+			gateway.setProtocol(Protocols.PDU);
+			// Do we want the Gateway to be used for Inbound messages?
+			gateway.setInbound(true);
+			// Do we want the Gateway to be used for Outbound messages?
+			gateway.setOutbound(true);
+			// Let SMSLib know which is the SIM PIN.
+			gateway.setSimPin("0000");
+			// Set up the notification methods.
+			Service.getInstance().setInboundMessageNotification(inboundNotification);
+			Service.getInstance().setCallNotification(callNotification);
+			Service.getInstance().setGatewayStatusNotification(statusNotification);
+			Service.getInstance().setOrphanedMessageNotification(orphanedMessageNotification);
+
+			// Add the Gateway to the Service object.
+			Service.getInstance().addGateway(gateway);
+			// Similarly, you may define as many Gateway objects, representing
+			// various GSM modems, add them in the Service object and control all of them.
+			// Start! (i.e. connect to all defined Gateways)
+			Service.getInstance().startService();
+			// Printout some general information about the modem.
+			System.out.println();
+			System.out.println("Modem Information:");
+			System.out.println("  Manufacturer: " + gateway.getManufacturer());
+			System.out.println("  Model: " + gateway.getModel());
+			System.out.println("  Serial No: " + gateway.getSerialNo());
+			System.out.println("  SIM IMSI: " + gateway.getImsi());
+			System.out.println("  Signal Level: " + gateway.getSignalLevel() + " dBm");
+			System.out.println("  Battery Level: " + gateway.getBatteryLevel() + "%");
+			System.out.println();
+			// In case you work with encrypted messages, its a good time to declare your keys.
+			// Create a new AES Key with a known key value.
+			// Register it in KeyManager in order to keep it active. SMSLib will then automatically
+			// encrypt / decrypt all messages send to / received from this number.
+			//Service.getInstance().getKeyManager().registerKey("+306948494037", new AESKey(new SecretKeySpec("0011223344556677".getBytes(), "AES")));
+			// Read Messages. The reading is done via the Service object and
+			// affects all Gateway objects defined. This can also be more directed to a specific
+			// Gateway - look the JavaDocs for information on the Service method calls.
+
+                        msgList = new ArrayList<InboundMessage>();
+
+                        Service.getInstance().readMessages(msgList, MessageClasses.ALL);
+
+                        for (InboundMessage msg : msgList){
+				System.out.println(msg);
+
+                        }
+			// Sleep now. Emulate real world situation and give a chance to the notifications
+			// methods to be called in the event of message or voice call reception.
+			System.out.println("Now Sleeping - Hit <enter> to stop service.");
+			System.in.read();
+			System.in.read();
+
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		finally
+		{
+			Service.getInstance().stopService();
+		}
+	}
+        
+        public class InboundNotification implements IInboundMessageNotification
+	{
+		public void process(AGateway gateway, MessageTypes msgType, InboundMessage msg)
+		{
+			if (msgType == MessageTypes.INBOUND) System.out.println(">>> New Inbound message detected from Gateway: " + gateway.getGatewayId());
+			else if (msgType == MessageTypes.STATUSREPORT) System.out.println(">>> New Inbound Status Report message detected from Gateway: " + gateway.getGatewayId());
+			System.out.println(msg);
+		}
+	}
+
+	public class CallNotification implements ICallNotification
+	{
+		public void process(AGateway gateway, String callerId)
+		{
+			System.out.println(">>> New call detected from Gateway: " + gateway.getGatewayId() + " : " + callerId);
+		}
+	}
+
+	public class GatewayStatusNotification implements IGatewayStatusNotification
+	{
+		public void process(AGateway gateway, GatewayStatuses oldStatus, GatewayStatuses newStatus)
+		{
+			System.out.println(">>> Gateway Status change for " + gateway.getGatewayId() + ", OLD: " + oldStatus + " -> NEW: " + newStatus);
+		}
+	}
+
+	public class OrphanedMessageNotification implements IOrphanedMessageNotification
+	{
+		public boolean process(AGateway gateway, InboundMessage msg)
+		{
+			System.out.println(">>> Orphaned message part detected from " + gateway.getGatewayId());
+			System.out.println(msg);
+			// Since we are just testing, return FALSE and keep the orphaned message part.
+			return false;
+		}
+	}
+
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JTextArea jTextArea1;
+    private javax.swing.JPanel mainPanel;
+    private javax.swing.JMenuBar menuBar;
+    private javax.swing.JProgressBar progressBar;
+    private javax.swing.JLabel statusAnimationLabel;
+    private javax.swing.JLabel statusMessageLabel;
+    private javax.swing.JPanel statusPanel;
+    // End of variables declaration//GEN-END:variables
+
+    private final Timer messageTimer;
+    private final Timer busyIconTimer;
+    private final Icon idleIcon;
+    private final Icon[] busyIcons = new Icon[15];
+    private int busyIconIndex = 0;
+
+    private JDialog aboutBox;
+}
