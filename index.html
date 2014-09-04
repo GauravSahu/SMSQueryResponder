@@ -55,6 +55,18 @@ generated message.</li>
 <p>SMS Query Responder allows you to programmatically receive and reply to incoming SMS messages on your website using any web language, such as JSP,PHP, ASP.NET and so forth.</p>
 
 <h3>
+<a name="jsp-sample-script" class="anchor" href="#jsp-sample-script"><span class="octicon octicon-link"></span></a>JSP Sample Script</h3>
+
+<pre><code>&lt;%@page contentType="text/html" pageEncoding="UTF-8"%&gt;
+&lt;%
+       String smsText = request.getParameter("smst"); //get sms text content  
+       String smsSender = request.getParameter("smsn"); // get sender number 
+
+       out.print("Hello"); // output string 
+%&gt;
+</code></pre>
+
+<h3>
 <a name="how-it-works" class="anchor" href="#how-it-works"><span class="octicon octicon-link"></span></a>How it Works</h3>
 
 <p>SMS Query Responder software connects to a GSM or 3G modem plugged in a computer. Each time a new SMS message arrives to that modem, the software forwards that message to your web server via HTTP, so that the message can be handled by your script or web application.</p>
