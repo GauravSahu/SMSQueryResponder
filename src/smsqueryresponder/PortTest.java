@@ -7,7 +7,7 @@ package smsqueryresponder;
 
 /**
  *
- * @author QWERTY
+ * @author GAURAV
  */
 import java.io.InputStream;
 import java.io.OutputStream;
