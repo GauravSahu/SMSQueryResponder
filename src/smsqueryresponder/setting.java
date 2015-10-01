@@ -498,9 +498,7 @@ public class setting extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
-        // TODO add your handling code here:
-        // JComboBox cb6 = (JComboBox)evt.getSource();
-       //  selectedport = (String)cb6.getSelectedItem();
+    
         jLabel3.setText("Port Sucessfully Added");
 }//GEN-LAST:event_jButton5ActionPerformed
 
@@ -679,7 +677,7 @@ public class setting extends javax.swing.JFrame {
                 new MySqlFrame().main(null);
                 
            }
-          // System.out.println(db);
+       
 
 
     }//GEN-LAST:event_jComboBox3ActionPerformed
